@@ -54,27 +54,58 @@ int main(int argc, char *argv[])
   /* CS194: Allocate Buffers on the GPU.
    *...We're already allocating the Y buffer
    * on the GPU for you */
+  // allocates memory for array A, B, and Y on device.
   g_Y = clCreateBuffer(cv.context,CL_MEM_READ_WRITE,
+		       sizeof(float)*n*n,NULL,&err);
+  CHK_ERR(err);
+  g_A = clCreateBuffer(cv.context,CL_MEM_READ_WRITE,
+		       sizeof(float)*n*n,NULL,&err);
+  CHK_ERR(err);
+  g_B = clCreateBuffer(cv.context,CL_MEM_READ_WRITE,
 		       sizeof(float)*n*n,NULL,&err);
   CHK_ERR(err);
   
   /* CS194: Copy data from host CPU to GPU */
-
+  // for array A and B from host to device
+  err = clEnqueueWriteBuffer(cv.commands, g_A, true, 0, sizeof(float)*n*n,
+			     h_A, 0, NULL, NULL);
+  CHK_ERR(err);
+  err = clEnqueueWriteBuffer(cv.commands, g_B, true, 0, sizeof(float)*n*n,
+			     h_B, 0, NULL, NULL);
+  CHK_ERR(err);
+  
   /* CS194: Create appropriately sized workgroups */
-  size_t global_work_size[2] = {-1,-1};
-  size_t local_work_size[2] = {-1,-1};
+  size_t global_work_size[2] = {n,n};
+  size_t local_work_size[2] = {16,16};
   
   /* CS194: Set kernel arguments */
-
+  err = clSetKernelArg(matmul, 0, sizeof(cl_mem), &g_Y);
+  CHK_ERR(err);
+  err = clSetKernelArg(matmul, 1, sizeof(cl_mem), &g_A);
+  CHK_ERR(err);
+  err = clSetKernelArg(matmul, 2, sizeof(cl_mem), &g_B);
+  CHK_ERR(err);
+  err = clSetKernelArg(matmul, 3, sizeof(int), &n);
+  CHK_ERR(err);
+  
   double t0 = timestamp();
   /* CS194: Launch matrix multiply kernel
-   * Here's a little code to get you started.. 
-   err = clEnqueueNDRangeKernel(cv.commands,...
+   * Here's a little code to get you started.. */
+   err = clEnqueueNDRangeKernel(cv.commands,
+			       matmul,
+			       2,//work_dim,
+			       NULL, //global_work_offset
+			       global_work_size, //global_work_size
+			       local_work_size, //local_work_size
+			       0, //num_events_in_wait_list
+			       NULL, //event_wait_list
+			       NULL //
 			       );
    CHK_ERR(err);
+  
    err = clFinish(cv.commands);
    CHK_ERR(err);
-  */
+   
   t0 = timestamp()-t0;
 
 
@@ -106,6 +137,7 @@ int main(int argc, char *argv[])
   delete [] h_Y;
   delete [] h_YY;
 
+  // frees memory allocated on device
   clReleaseMemObject(g_A); 
   clReleaseMemObject(g_B); 
   clReleaseMemObject(g_Y);

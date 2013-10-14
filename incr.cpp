@@ -46,23 +46,29 @@ int main(int argc, char *argv[])
     }
 
   cl_int err = CL_SUCCESS;
-  /* CS194: Allocate memory for arrays on 
-   * the GPU */
+  /* CS194: Allocate memory for arrays on the GPU */
+  // like "cudaMalloc"
   g_Y = clCreateBuffer(cv.context,CL_MEM_READ_WRITE,sizeof(float)*n,NULL,&err);
   CHK_ERR(err);
 
+  // copies memory from host to device, the host array.
+  // like "cudaMemcpyHostToDevice"
   err = clEnqueueWriteBuffer(cv.commands, g_Y, true, 0, sizeof(float)*n,
 			     h_Y, 0, NULL, NULL);
   CHK_ERR(err);
 
+  // sets global and local work size (number of groups and work items to launch)
   size_t global_work_size[1] = {n};
   size_t local_work_size[1] = {128};
-    
+  
+  // sets the kernel arguments (initializes local variables in kernel)  
   err = clSetKernelArg(incr, 0, sizeof(cl_mem), &g_Y);
   CHK_ERR(err);
   err = clSetKernelArg(incr, 1, sizeof(int), &n);
   CHK_ERR(err);
  
+  //executes kernel on device
+  //like kernel<<grid,block>>
   err = clEnqueueNDRangeKernel(cv.commands,
 			       incr,
 			       1,//work_dim,
@@ -76,6 +82,7 @@ int main(int argc, char *argv[])
   CHK_ERR(err);
 
   /* Read result of GPU on host CPU */
+  //like "cudaMemcpyDeviceToHost"
   err = clEnqueueReadBuffer(cv.commands, g_Y, true, 0, sizeof(float)*n,
 			    h_Y, 0, NULL, NULL);
   CHK_ERR(err);
@@ -102,6 +109,8 @@ int main(int argc, char *argv[])
   delete [] h_Y;
   delete [] h_YY;
 
+  //frees allocated memory on device
+  //like "cudaFree"
   clReleaseMemObject(g_Y);
   
   return 0;
