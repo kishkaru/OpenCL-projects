@@ -5,5 +5,5 @@ __kernel void matmul(__global float *Y, __global float *A, __global float *B, in
 	
 	if((idx < n) && (idy < n)) 
 		for(int i=0, j=0; i<n, j<n; i++, j++)
-			Y[idx*n+idy] += A[idy*n+i] * B[j*n+idx];
+			Y[idx*n+idy] += A[idx*n+i] * B[j*n+idy];
 }

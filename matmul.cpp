@@ -67,6 +67,11 @@ int main(int argc, char *argv[])
   
   /* CS194: Copy data from host CPU to GPU */
   // for array A and B from host to device
+
+  err = clEnqueueWriteBuffer(cv.commands, g_Y, true, 0, sizeof(float)*n*n,
+			     h_Y, 0, NULL, NULL);
+  CHK_ERR(err);
+
   err = clEnqueueWriteBuffer(cv.commands, g_A, true, 0, sizeof(float)*n*n,
 			     h_A, 0, NULL, NULL);
   CHK_ERR(err);
