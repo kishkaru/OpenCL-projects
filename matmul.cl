@@ -4,6 +4,6 @@ __kernel void matmul(__global float *Y, __global float *A, __global float *B, in
 	int idy = get_global_id(1); //gets the global work-item ID (threadID.y) of the thread.
 	
 	if((idx < n) && (idy < n)) 
-		for(int i=0, j=0; i<n, j<n; i++, j++)
-			Y[idx*n+idy] += A[idx*n+i] * B[j*n+idy];
+		for(int i=0; i<n; i++)
+			Y[idx*n+idy] += A[idx*n+i] * B[i*n+idy]; //performs the matrix multiplication
 }

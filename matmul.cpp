@@ -66,12 +66,11 @@ int main(int argc, char *argv[])
   CHK_ERR(err);
   
   /* CS194: Copy data from host CPU to GPU */
-  // for array A and B from host to device
+  // for array A and B from host to device. Also copy Y to zero out memory
 
   err = clEnqueueWriteBuffer(cv.commands, g_Y, true, 0, sizeof(float)*n*n,
 			     h_Y, 0, NULL, NULL);
   CHK_ERR(err);
-
   err = clEnqueueWriteBuffer(cv.commands, g_A, true, 0, sizeof(float)*n*n,
 			     h_A, 0, NULL, NULL);
   CHK_ERR(err);
@@ -80,6 +79,7 @@ int main(int argc, char *argv[])
   CHK_ERR(err);
   
   /* CS194: Create appropriately sized workgroups */
+  // In this case, its a NxN matrix
   size_t global_work_size[2] = {n,n};
   size_t local_work_size[2] = {16,16};
   
