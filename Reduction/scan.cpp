@@ -32,10 +32,10 @@ void recursive_scan(cl_command_queue &queue,
   int left_over = 0;
   cl_int err;
   
-  adjustWorkSize(global_work_size[0], local_work_size[0]);
+  adjustWorkSize(global_work_size[0], local_work_size[0]); //padding for work groups
   global_work_size[0] = std::max(local_work_size[0], global_work_size[0]);
 
-  left_over = global_work_size[0] / local_work_size[0];
+  left_over = global_work_size[0] / local_work_size[0]; //# work groups
   
   cl_mem g_bscan = clCreateBuffer(context,CL_MEM_READ_WRITE, 
 				  sizeof(int)*left_over,NULL,&err);
@@ -72,7 +72,7 @@ void recursive_scan(cl_command_queue &queue,
   if(left_over > 1)
     {
       cl_mem g_bbscan = clCreateBuffer(context,CL_MEM_READ_WRITE, 
-				      sizeof(int)*left_over,NULL,&err);
+				      sizeof(int)*left_over,NULL,&err);  //new OUT
 
       recursive_scan(queue,context,scan_kern,update_kern,g_bscan,g_bbscan,left_over);
 
