@@ -24,9 +24,13 @@ void recursive_scan(cl_command_queue &queue,
 		    cl_mem &out, 
 		    int len)
 {
-  /* CS194: Explain to us how
-   * this function works in a 
-   * short paragraph */
+  /** Scan works like this: if the scanning triangle is smaller than the local_work_size (128), then the recursive part
+    * is never called. It does a simple scan and uses the output of the OUT array.
+    * If the scanning triangle is larger than the local_work_size, then left_over>1. In this case, scan is called again
+	* for the remaining work groups. 
+	* Finally, in both cases, the update_kern function is called to generate the final "large" triangle.
+  **/
+
   size_t global_work_size[1] = {len};
   size_t local_work_size[1] = {128};
   int left_over = 0;
@@ -35,7 +39,7 @@ void recursive_scan(cl_command_queue &queue,
   adjustWorkSize(global_work_size[0], local_work_size[0]); //padding for work groups
   global_work_size[0] = std::max(local_work_size[0], global_work_size[0]);
 
-  left_over = global_work_size[0] / local_work_size[0]; //# work groups
+  left_over = global_work_size[0] / local_work_size[0]; //number of total work groups
   
   cl_mem g_bscan = clCreateBuffer(context,CL_MEM_READ_WRITE, 
 				  sizeof(int)*left_over,NULL,&err);
@@ -56,7 +60,6 @@ void recursive_scan(cl_command_queue &queue,
   err = clSetKernelArg(scan_kern, 4, sizeof(int), &len);
   CHK_ERR(err);
 
-  /* CS194: You need to write this scan kernel */
   err = clEnqueueNDRangeKernel(queue,
 			       scan_kern,
 			       1,//work_dim,
@@ -69,10 +72,10 @@ void recursive_scan(cl_command_queue &queue,
 			       );
   CHK_ERR(err);
 
-  if(left_over > 1)
+  if(left_over > 1) //if more than one work group
     {
       cl_mem g_bbscan = clCreateBuffer(context,CL_MEM_READ_WRITE, 
-				      sizeof(int)*left_over,NULL,&err);  //new OUT
+				      sizeof(int)*left_over,NULL,&err);  //new OUT array
 
       recursive_scan(queue,context,scan_kern,update_kern,g_bscan,g_bbscan,left_over);
 
@@ -89,11 +92,8 @@ void recursive_scan(cl_command_queue &queue,
 			   sizeof(int), &len);
       CHK_ERR(err);
       
-      /* CS194: We've provided you with
-       * this update kernel. Make you
-       * sure youre explain includes
-       * how this kernel works and
-       * why its needed */
+	//this kernel is needed to generate the final "large" triangle. It takes each element and adds the largest element of the previous
+	//triangle to "grow" the triangle.
       err = clEnqueueNDRangeKernel(queue,
 				   update_kern,
 				   1,//work_dim,
