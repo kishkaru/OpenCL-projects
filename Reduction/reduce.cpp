@@ -72,16 +72,93 @@ int main(int argc, char *argv[])
 			     h_A, 0, NULL, NULL);
   CHK_ERR(err);
 
-
-
-  size_t local_work_size[1] = {256};
-  size_t global_work_size[1];
-
+/////////////////16.7M -> 32K///////////////
+  size_t global_work_size[1] = {n};
+  size_t local_work_size[1] = {512};
 
   double t0 = timestamp();
-  /* CS194 : Implement a 
-   * reduction here */
+
+ /* Set Kernel Arguments */
+  err = clSetKernelArg(reduce, 0, sizeof(cl_mem), &g_In);
+  CHK_ERR(err);
+  err = clSetKernelArg(reduce, 1, sizeof(cl_mem), &g_Out);
+  CHK_ERR(err);
+  err = clSetKernelArg(reduce, 2, sizeof(cl_int)* local_work_size[0], NULL);
+  CHK_ERR(err);
+  err = clSetKernelArg(reduce, 3, sizeof(int), &n);
+  CHK_ERR(err);
   
+  /* Call kernel on the GPU */
+  err = clEnqueueNDRangeKernel(cv.commands,
+			       reduce,
+			       1,//work_dim,
+			       NULL, //global_work_offset
+			       global_work_size, //global_work_size
+			       local_work_size, //local_work_size
+			       0, //num_events_in_wait_list
+			       NULL, //event_wait_list
+			       NULL //
+			       );
+  CHK_ERR(err);
+  
+
+  /////////////////32K -> 64///////////////
+  global_work_size[1] = {n/512};
+  local_work_size[1] = {512};
+  int m = n/512; 
+   
+ /* Set Kernel Arguments */
+  err = clSetKernelArg(reduce, 0, sizeof(cl_mem), &g_Out);
+  CHK_ERR(err);
+  err = clSetKernelArg(reduce, 1, sizeof(cl_mem), &g_Out);
+  CHK_ERR(err);
+  err = clSetKernelArg(reduce, 2, sizeof(cl_int)* local_work_size[0], NULL);
+  CHK_ERR(err);
+  err = clSetKernelArg(reduce, 3, sizeof(int), &m);
+  CHK_ERR(err);
+  
+  /* Call kernel on the GPU */
+  err = clEnqueueNDRangeKernel(cv.commands,
+			       reduce,
+			       1,//work_dim,
+			       NULL, //global_work_offset
+			       global_work_size, //global_work_size
+			       local_work_size, //local_work_size
+			       0, //num_events_in_wait_list
+			       NULL, //event_wait_list
+			       NULL //
+			       );
+  CHK_ERR(err);
+
+  /////////////////64 -> 1///////////////
+  global_work_size[1] = {n/512/512};
+  local_work_size[1] = {512};
+  m = m/512; 
+   
+ /* Set Kernel Arguments */
+  err = clSetKernelArg(reduce, 0, sizeof(cl_mem), &g_Out);
+  CHK_ERR(err);
+  err = clSetKernelArg(reduce, 1, sizeof(cl_mem), &g_Out);
+  CHK_ERR(err);
+  err = clSetKernelArg(reduce, 2, sizeof(cl_int)* local_work_size[0], NULL);
+  CHK_ERR(err);
+  err = clSetKernelArg(reduce, 3, sizeof(int), &m);
+  CHK_ERR(err);
+  
+  /* Call kernel on the GPU */
+  err = clEnqueueNDRangeKernel(cv.commands,
+			       reduce,
+			       1,//work_dim,
+			       NULL, //global_work_offset
+			       global_work_size, //global_work_size
+			       local_work_size, //local_work_size
+			       0, //num_events_in_wait_list
+			       NULL, //event_wait_list
+			       NULL //
+			       );
+  CHK_ERR(err);
+  
+  /////////////END//////////////////
   t0 = timestamp()-t0;
   
   //read result of GPU on host CPU
