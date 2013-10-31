@@ -138,8 +138,66 @@ int main(int argc, char *argv[])
   int left_over = 0;
 
   double t0 = timestamp();
-  /* CS194: Implement radix sort here */
 
+	///   Radix sort implementation  ///
+	for(int k=0; k< 32; k++)
+	{		
+		//fill the zeros array with indexes where the LSB is zero.
+		rsort_scan(cv.commands,
+			cv.context,
+			kernel_map[scan_name_str],
+			kernel_map[update_name_str],
+			g_in, 
+			g_zeros, 
+			0,
+			k,
+			n);
+		
+		//fill the ones array with indexes where the LSB is one.	
+		rsort_scan(cv.commands,
+			cv.context,
+			kernel_map[scan_name_str],
+			kernel_map[update_name_str],
+			g_in, 
+			g_ones, 
+			1,
+			k,
+			n);
+	
+		//set Kernel Arguments
+		err = clSetKernelArg(kernel_map[reassemble_name_str], 0, sizeof(cl_mem), &g_in);
+		CHK_ERR(err);
+		err = clSetKernelArg(kernel_map[reassemble_name_str], 1, sizeof(cl_mem), &g_out);
+		CHK_ERR(err);
+		err = clSetKernelArg(kernel_map[reassemble_name_str], 2, sizeof(cl_mem), &g_zeros);
+		CHK_ERR(err);
+		err = clSetKernelArg(kernel_map[reassemble_name_str], 3, sizeof(cl_mem), &g_ones);
+		CHK_ERR(err);
+		err = clSetKernelArg(kernel_map[reassemble_name_str], 4, sizeof(int), &k);
+		CHK_ERR(err);
+		err = clSetKernelArg(kernel_map[reassemble_name_str], 5, sizeof(int), &n);
+		CHK_ERR(err);
+	
+		//calls the scatter kernel on the GPU, which scatters the zeros' and ones' to the correct positions in the output array.
+		err = clEnqueueNDRangeKernel(cv.commands,
+			       kernel_map[reassemble_name_str],
+			       1,//work_dim,
+			       NULL, //global_work_offset
+			       global_work_size, //global_work_size
+			       local_work_size, //local_work_size
+			       0, //num_events_in_wait_list
+			       NULL, //event_wait_list
+			       NULL //
+			       );
+		CHK_ERR(err);
+		
+		//need to swap the input and output arrays to get ready for the next iteration.
+		g_temp = g_in;
+		g_in = g_out;
+		g_out = g_temp;
+
+  }
+  
   t0 = timestamp() - t0;
 
   /* Sort array on CPU for comparison */
@@ -188,10 +246,6 @@ int main(int argc, char *argv[])
   return 0;
 }
 
-/* CS194: This function performs an
- * additive prefix scan combined
- * with the masking function needed
- * for radix sort */
 void rsort_scan(cl_command_queue &queue,
 		cl_context &context,
 		cl_kernel &scan_kern,
