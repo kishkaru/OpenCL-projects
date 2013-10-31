@@ -66,34 +66,34 @@ __kernel void scan(__global int *in,
       buf[tid] = 0;
     }
 	
+	//creates a "second" buffer from the 2nd half of buf, for temporarily
+	//storing the outputs. This buffer will be used as the input for the
+	//next iteration of the loop. This switching will happen at every 
+	//iteration. "buf" will always point to the input/read and buf2 will
+	//always point to the output/write.
 	
-	//__local int *buf2 = buf + dim;
-	
-	barrier(CLK_LOCAL_MEM_FENCE);
 
-  //iterates through, reducing by half each time and summing scanned elements
+	//run the algorithm for array size from dim to 1, halfing the number of
+	//threads used each active because each thread grabs itself and its 
+	//assigned "neighbor" depending on "d", which is the division size.
 	for(int d = 1; d < dim; d = d*2)
 	{
-		if(tid >= d)
+		if((tid >= d) && (idx < n))
 		{
-			buf[w+tid] = buf[r+tid] + buf[r+tid - d];
+			buf2[tid] = buf[tid] + buf[tid - d];
 		}
 		else
 		{
-			buf[w+tid] = buf[r+tid];
+			buf2[tid] = buf[tid];
 		}
-			
+				
 		barrier(CLK_LOCAL_MEM_FENCE);
 		
-		if(tid == 0)
-		{
-			int tmp = r;
-			r = w;
-			w = tmp;
-		}
-		
+		__local int *tmp = buf; //switch the two buffer pointers
+		buf = buf2;
+		buf2 = tmp;
+	
 		barrier(CLK_LOCAL_MEM_FENCE);
-		
 	}
   
   //stores partial scans in the output array
